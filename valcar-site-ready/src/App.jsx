@@ -11,6 +11,7 @@ function classNames(...c) {
 }
 
 function formatPrice(n) {
+  if (typeof n !== "number") return "-"
   return n.toLocaleString("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 })
 }
 
@@ -34,12 +35,15 @@ function Stat({ label, value }) {
   return (
     <div className="flex flex-col items-start">
       <span className="text-xs text-gray-500">{label}</span>
-      <span className="font-semibold">{value}</span>
+      <span className="font-semibold">{value ?? "-"}</span>
     </div>
   )
 }
 
 function CarCard({ car, onOpen }) {
+  const kmTxt = car?.km != null ? car.km.toLocaleString("es-ES") : "-"
+  const loc = car?.location || "Ciudad Real"
+
   return (
     <button
       onClick={() => onOpen(car)}
@@ -52,8 +56,8 @@ function CarCard({ car, onOpen }) {
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
         <div className="absolute left-3 top-3 flex gap-2">
-          <Badge>{car.fuel}</Badge>
-          <Badge>{car.gearbox}</Badge>
+          {car.fuel && <Badge>{car.fuel}</Badge>}
+          {car.gearbox && <Badge>{car.gearbox}</Badge>}
         </div>
         <div className="absolute bottom-3 right-3 rounded-lg bg-white/90 px-2 py-1 text-sm font-semibold">
           {formatPrice(car.price)}
@@ -63,12 +67,12 @@ function CarCard({ car, onOpen }) {
         <div>
           <h3 className="line-clamp-1 text-base font-semibold">{car.title}</h3>
           <p className="mt-1 text-sm text-gray-600">
-            {car.year} · {car.km.toLocaleString("es-ES")} km · {car.location}
+            {car.year ?? "-"} · {kmTxt} km · {loc}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Chip>{car.power} CV</Chip>
-          <Chip>{car.engine}</Chip>
+          {car.power != null && <Chip>{car.power} CV</Chip>}
+          {car.engine && <Chip>{car.engine}</Chip>}
         </div>
       </div>
     </button>
@@ -139,7 +143,7 @@ function BookingForm({ car }) {
         <input
           name="phone"
           required
-          pattern="^[+0-9\\s-]{6,}$"
+          pattern="^[+0-9\s-]{6,}$"
           className="rounded-lg border px-3 py-2 outline-none focus:ring"
           placeholder="Tu teléfono"
           value={form.phone}
@@ -193,15 +197,16 @@ export default function App() {
       .catch(() => setCars([]))
   }, [])
 
-  const fuels = useMemo(() => ["Todos", ...Array.from(new Set(cars.map((c) => c.fuel)))], [cars])
-  const gearboxes = useMemo(() => ["Todos", ...Array.from(new Set(cars.map((c) => c.gearbox)))], [cars])
+  const fuels = useMemo(() => ["Todos", ...Array.from(new Set(cars.map((c) => c.fuel).filter(Boolean)))], [cars])
+  const gearboxes = useMemo(() => ["Todos", ...Array.from(new Set(cars.map((c) => c.gearbox).filter(Boolean)))], [cars])
 
   const filtered = useMemo(() => {
     return cars.filter((c) => {
-      const matchesQuery = [c.title, c.engine, c.color].join(" ").toLowerCase().includes(query.toLowerCase())
+      const haystack = [c.title, c.engine, c.color].filter(Boolean).join(" ").toLowerCase()
+      const matchesQuery = haystack.includes(query.toLowerCase())
       const matchesFuel = fuel === "Todos" || c.fuel === fuel
       const matchesGearbox = gearbox === "Todos" || c.gearbox === gearbox
-      const matchesPrice = c.price <= maxPrice
+      const matchesPrice = typeof c.price === "number" ? c.price <= maxPrice : true
       return matchesQuery && matchesFuel && matchesGearbox && matchesPrice
     })
   }, [cars, query, fuel, gearbox, maxPrice])
@@ -212,18 +217,18 @@ export default function App() {
       <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black font-bold text-white">CV</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black font-bold text-white">RRR</div>
             <div>
-              <h1 className="text-lg font-bold leading-tight">Compraventa Valcar</h1>
-              <p className="text-xs text-gray-600">Vehículos seleccionados · Madrid</p>
+              <h1 className="text-lg font-bold leading-tight">rrrvehiculos</h1>
+              <p className="text-xs text-gray-600">Coches de ocasión · Ciudad Real</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 md:flex">
-            <a href={`tel:${PHONE_NUMBER.replace(/\\s/g, "")}`} className="rounded-xl border px-3 py-2 text-sm font-semibold">
+            <a href={`tel:${PHONE_NUMBER.replace(/\s/g, "")}`} className="rounded-xl border px-3 py-2 text-sm font-semibold">
               Llamar {PHONE_NUMBER}
             </a>
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\\s|\\+/g, "")}`}
+              href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\s|\+/g, "")}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white"
@@ -238,7 +243,7 @@ export default function App() {
       <section className="mx-auto max-w-7xl px-4 py-8">
         <div className="grid gap-6 md:grid-cols-5">
           <div className="md:col-span-3">
-            <h2 className="text-2xl font-bold">Encuentra tu próximo coche</h2>
+            <h2 className="text-2xl font-bold">rrrvehiculos — ocasión en Ciudad Real</h2>
             <p className="mt-2 text-sm text-gray-600">
               Sin compras online. Reserva una cita para verlo en persona o llámanos para más información.
             </p>
@@ -287,7 +292,7 @@ export default function App() {
               <p className="text-sm">¿Quieres vender tu coche?</p>
               <p className="text-xs text-gray-600">Tasación sin compromiso</p>
               <a
-                href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\\s|\\+/g, "")}`}
+                href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\s|\+/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-2 inline-flex items-center justify-center rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white"
@@ -334,7 +339,7 @@ export default function App() {
               <div className="md:col-span-3">
                 <h3 className="text-xl font-bold">{selected.title}</h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  {selected.year} · {selected.km.toLocaleString("es-ES")} km · {selected.location}
+                  {selected.year ?? "-"} · {(selected.km != null ? selected.km.toLocaleString("es-ES") : "-")} km · {selected.location || "Ciudad Real"}
                 </p>
 
                 {/* Highlights */}
@@ -350,9 +355,9 @@ export default function App() {
                 <div className="mt-6 grid grid-cols-2 gap-4 rounded-2xl border bg-gray-50 p-4 sm:grid-cols-3">
                   <Stat label="Combustible" value={selected.fuel} />
                   <Stat label="Cambio" value={selected.gearbox} />
-                  <Stat label="Potencia" value={`${selected.power} CV`} />
+                  <Stat label="Potencia" value={selected.power != null ? `${selected.power} CV` : "-"} />
                   <Stat label="Motor" value={selected.engine} />
-                  <Stat label="Puertas" value={`${selected.doors}`} />
+                  <Stat label="Puertas" value={selected.doors != null ? `${selected.doors}` : "-"} />
                   <Stat label="Consumo" value={selected.consumption} />
                 </div>
 
@@ -378,11 +383,11 @@ export default function App() {
                   <p className="mt-1 text-sm text-gray-600">Reserva una cita o llámanos ahora.</p>
 
                   <div className="mt-3 grid gap-2">
-                    <a href={`tel:${PHONE_NUMBER.replace(/\\s/g, "")}`} className="inline-flex items-center justify-center rounded-xl border px-4 py-2 font-semibold">
+                    <a href={`tel:${PHONE_NUMBER.replace(/\s/g, "")}`} className="inline-flex items-center justify-center rounded-xl border px-4 py-2 font-semibold">
                       Llamar {PHONE_NUMBER}
                     </a>
                     <a
-                      href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\\s|\\+/g, "")}`}
+                      href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\s|\+/g, "")}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2 font-semibold text-white"
@@ -417,15 +422,15 @@ export default function App() {
       <footer className="border-t bg-white">
         <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 md:grid-cols-2">
           <div>
-            <p className="font-semibold">Compraventa Valcar</p>
-            <p className="text-sm text-gray-600">C/ Ejemplo 123, Madrid · L-V 10:00-14:00 / 16:00-20:00</p>
+            <p className="font-semibold">rrrvehiculos</p>
+            <p className="text-sm text-gray-600">Ciudad Real · L-V 10:00-14:00 / 16:00-20:00</p>
           </div>
           <div className="flex items-center gap-3 md:justify-end">
-            <a href={`tel:${PHONE_NUMBER.replace(/\\s/g, "")}`} className="rounded-xl border px-3 py-2 text-sm font-semibold">
+            <a href={`tel:${PHONE_NUMBER.replace(/\s/g, "")}`} className="rounded-xl border px-3 py-2 text-sm font-semibold">
               Llamar
             </a>
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\\s|\\+/g, "")}`}
+              href={`https://wa.me/${WHATSAPP_NUMBER.replace(/\s|\+/g, "")}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-xl bg-black px-3 py-2 text-sm font-semibold text-white"
