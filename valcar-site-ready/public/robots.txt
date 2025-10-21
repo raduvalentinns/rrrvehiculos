@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://rrrvehiculos.com/sitemap.xml
